@@ -1,0 +1,166 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Arquivo {
+  id           Int        @id @default(autoincrement())
+  nome         String
+  tipo         String
+  tamanho      Int
+  caminho      String
+  createdAt    DateTime   @default(now()) @map(name: "created_at")
+  updatedAt    DateTime   @updatedAt @map(name: "updated_at")
+  publico      Boolean    @default(false)
+  criadorPor   Pessoa     @relation(name: "ArquivoCriadoPor", fields: [criadorPorId], references: [id])
+  Exercicio    Exercicio? @relation(fields: [exercicioId], references: [id])
+  exercicioId  Int?
+  criadorPorId Int
+  Pessoa       Pessoa[]
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String?  @unique
+  senha     String
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+  perfil    Perfil   @relation(fields: [perfilId], references: [id])
+  Pessoa    Pessoa?  @relation(fields: [pessoaId], references: [id])
+  pessoaId  Int?
+  perfilId  Int
+
+  @@map(name: "users")
+}
+
+model Perfil {
+  id        Int       @id @default(autoincrement())
+  nome      String
+  descricao String
+  createdAt DateTime  @default(now()) @map(name: "created_at")
+  updatedAt DateTime  @updatedAt @map(name: "updated_at")
+  Usuario   Usuario[]
+}
+
+model Pessoa {
+  id                        Int             @id @default(autoincrement())
+  nome                      String
+  cpf                       String          @unique
+  usuario                   Usuario[]
+  arquivosCriados           Arquivo[]       @relation("ArquivoCriadoPor")
+  fotoDePerfil              Arquivo         @relation(fields: [fotoDePerfilId], references: [id])
+  createdAt                 DateTime        @default(now()) @map(name: "created_at")
+  updatedAt                 DateTime        @updatedAt @map(name: "updated_at")
+  endereco                  Endereco        @relation(fields: [enderecoId], references: [id])
+  enderecoId                Int
+  FichasDeTreinoCriadas     FichaDeTreino[] @relation("FichaCriadaPor")
+  FichasDeTreinoAtualizadas FichaDeTreino[] @relation("FichaAtualizadaPor")
+  FichaDeTreino             FichaDeTreino?  @relation(fields: [fichaDeTreinoId], references: [id])
+  fotoDePerfilId            Int
+  fichaDeTreinoId           Int
+}
+
+model Endereco {
+  id         Int      @id @default(autoincrement())
+  logradouro String
+  numero     Int
+  bairro     String
+  cep        String
+  cidade     String
+  estado     Estado   @relation(fields: [estadoId], references: [id])
+  createdAt  DateTime @default(now()) @map(name: "created_at")
+  updatedAt  DateTime @updatedAt @map(name: "updated_at")
+  estadoId   Int
+  Pessoa     Pessoa[]
+}
+
+model Estado {
+  id        Int        @id @default(autoincrement())
+  nome      String
+  createdAt DateTime   @default(now()) @map(name: "created_at")
+  updatedAt DateTime   @updatedAt @map(name: "updated_at")
+  Endereco  Endereco[]
+}
+
+model DiaDaSemana {
+  id              Int         @id @default(autoincrement())
+  nome            String      @unique
+  createdAt       DateTime    @default(now()) @map(name: "created_at")
+  updatedAt       DateTime    @updatedAt @map(name: "updated_at")
+  fichaDeTreinoId Int?
+  diaTreino       DiaTreino[]
+}
+
+model CategoriaDeExercicio {
+  id                     Int                   @id @default(autoincrement())
+  nome                   String                @unique
+  createdAt              DateTime              @default(now()) @map(name: "created_at")
+  updatedAt              DateTime              @updatedAt @map(name: "updated_at")
+  Exercicio              Exercicio[]
+  VariaveisDeExercicio   VariaveisDeExercicio? @relation(fields: [variaveisDeExercicioId], references: [id])
+  variaveisDeExercicioId Int?
+
+  @@map("Categoria")
+}
+
+model Exercicio {
+  id              Int                  @id @default(autoincrement())
+  nome            String               @unique
+  descricao       String
+  materialDeApoio Arquivo[]
+  categoria       CategoriaDeExercicio @relation(fields: [categoriaId], references: [id])
+  createdAt       DateTime             @default(now()) @map(name: "created_at")
+  updatedAt       DateTime             @updatedAt @map(name: "updated_at")
+  categoriaId     Int
+  DiaTreino       DiaTreino[]
+  FichaDeTreino   FichaDeTreino?       @relation(fields: [fichaDeTreinoId], references: [id])
+  fichaDeTreinoId Int?
+}
+
+model VariaveisDeExercicio {
+  id              Int                    @id @default(autoincrement())
+  repeticoes      Int
+  series          Int
+  carga           Int
+  tempoDeDescanso Int
+  nome            String                 
+  createdAt       DateTime               @default(now()) @map(name: "created_at")
+  updatedAt       DateTime               @updatedAt @map(name: "updated_at")
+  Exercicio       CategoriaDeExercicio[]
+  FichaDeTreino   FichaDeTreino?         @relation(fields: [fichaDeTreinoId], references: [id])
+  fichaDeTreinoId Int?
+}
+
+model FichaDeTreino {
+  id            Int                    @id @default(autoincrement())
+  nome          String                 @unique
+  descricao     String
+  createdAt     DateTime               @default(now()) @map(name: "created_at")
+  updatedAt     DateTime               @updatedAt @map(name: "updated_at")
+  criadaPor     Pessoa                 @relation(name: "FichaCriadaPor", fields: [criadaPorId], references: [id])
+  atualidaPor   Pessoa                 @relation(name: "FichaAtualizadaPor", fields: [atualidaPorId], references: [id])
+  diaTreino     DiaTreino[]
+  exercicios    Exercicio[]
+  pessoas       Pessoa[]
+  variaveis     VariaveisDeExercicio[]
+  criadaPorId   Int
+  atualidaPorId Int
+}
+
+model DiaTreino {
+  id            Int             @id @default(autoincrement())
+  nome          String          @unique
+  createdAt     DateTime        @default(now()) @map(name: "created_at")
+  updatedAt     DateTime        @updatedAt @map(name: "updated_at")
+  FichaDeTreino FichaDeTreino[]
+  exercicio     Exercicio[]
+  diasDaSemana  DiaDaSemana[]
+  diaDaSemanaId Int
+}
